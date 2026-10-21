@@ -1,0 +1,851 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Food Lens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Manrope:wght@500;600;700&display=swap">
+<style>
+/* Layout concept: one phone-width column. Deep green ground (about 60%), midnight blue surfaces (about 30%),
+   white for type and primary actions (the rest). Food colors appear only where they carry meaning: good, caution, avoid. */
+:root {
+  --green: #0a2c22;
+  --green-2: #0e382c;
+  --blue: #112a4d;
+  --blue-2: #1a3a68;
+  --white: #f5f9f6;
+  --muted: #a9bdb4;
+  --good: #6fdcab;
+  --warn: #f3bf53;
+  --bad: #ff806f;
+  --line: rgba(245, 249, 246, 0.14);
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--green);
+  color: var(--white);
+  font: 500 15px/1.5 var(--font-body);
+  padding-block: 18px 112px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-font-smoothing: antialiased;
+}
+.app { max-width: 480px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.01em; margin: 0; text-wrap: balance; line-height: 1.15; }
+h1 { font-size: 28px; }
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > * { flex: 1 1 140px; min-width: 0; }
+:focus-visible { outline: 2px solid var(--good); outline-offset: 2px; }
+
+.btn {
+  font: 600 15px var(--font-body);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 0; border-radius: 14px; padding: 14px 18px; min-height: 50px; width: 100%;
+  cursor: pointer; transition: transform .12s ease, opacity .12s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn.primary { background: var(--white); color: var(--green); }
+.btn.ghost { background: transparent; color: var(--white); box-shadow: inset 0 0 0 1.5px rgba(245, 249, 246, 0.45); }
+.btn.blue { background: var(--blue-2); color: var(--white); }
+.btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.linkbtn { background: none; border: 0; color: var(--white); font: 600 14px var(--font-body); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px 0; }
+.iconbtn { background: var(--blue); border: 1px solid var(--line); color: var(--white); width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; cursor: pointer; flex: none; }
+
+.card { background: var(--blue); border: 1px solid var(--line); border-radius: 20px; padding: 16px; min-width: 0; }
+.card.soft { background: var(--green-2); }
+
+/* welcome */
+.welcome { min-height: calc(100vh - 140px); display: flex; flex-direction: column; justify-content: center; gap: 22px; text-align: left; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 20px var(--font-display); }
+.hero { display: grid; place-items: center; }
+.hero svg { width: min(100%, 340px); height: auto; }
+.lead { color: var(--muted); font-size: 16px; }
+.scanline { animation: sweep 2.8s ease-in-out infinite alternate; }
+@keyframes sweep { from { transform: translateY(-64px); } to { transform: translateY(64px); } }
+
+/* forms */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-weight: 600; font-size: 13px; color: var(--muted); }
+.field input, .field textarea {
+  font: 500 16px var(--font-body); color: var(--white); background: var(--green-2);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; width: 100%; min-width: 0;
+}
+.field textarea { resize: vertical; min-height: 84px; }
+.field input::placeholder, .field textarea::placeholder { color: rgba(169, 189, 180, 0.7); }
+.err { color: var(--bad); font-size: 14px; min-height: 20px; }
+
+/* onboarding */
+.bar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.bar i { height: 5px; border-radius: 9px; background: var(--line); }
+.bar i.on { background: var(--good); }
+.topline { display: flex; align-items: center; gap: 12px; }
+.topline .bar { flex: 1; }
+.opts { display: flex; flex-direction: column; gap: 10px; }
+.opt { text-align: left; font: 600 15px var(--font-body); color: var(--white); background: var(--blue); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.opt span.sub { display: block; font-weight: 500; font-size: 13px; color: var(--muted); }
+.opt[aria-pressed="true"] { border-color: var(--white); background: var(--blue-2); }
+.opt .tick { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; flex: none; color: var(--green); }
+.opt[aria-pressed="true"] .tick { background: var(--white); border-color: var(--white); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 600 14px var(--font-body); color: var(--white); background: var(--blue); border: 1.5px solid var(--line); border-radius: 999px; padding: 9px 14px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--white); color: var(--green); border-color: var(--white); }
+.group-label { font-weight: 600; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.stepper { display: flex; align-items: center; justify-content: center; gap: 22px; padding: 10px 0; }
+.stepper b { font: 700 54px var(--font-display); min-width: 64px; text-align: center; }
+.stepper .iconbtn { width: 52px; height: 52px; border-radius: 50%; }
+
+/* nav */
+.nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--blue); border-top: 1px solid var(--line);
+  padding: 8px max(16px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.nav-in { max-width: 480px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.nav button { background: none; border: 0; color: var(--muted); font: 600 11px var(--font-body); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; border-radius: 12px; cursor: pointer; }
+.nav button[aria-current="page"] { color: var(--white); background: rgba(245, 249, 246, 0.1); }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 9; background: var(--white); color: var(--green); font: 600 14px var(--font-body); padding: 10px 16px; border-radius: 999px; max-width: calc(100% - 32px); text-align: center; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+
+/* scan */
+.drop { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.drop .ico { width: 56px; height: 56px; border-radius: 16px; background: var(--green); display: grid; place-items: center; color: var(--good); }
+details.card summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details.card summary::-webkit-details-marker { display: none; }
+details.card[open] summary { margin-bottom: 12px; }
+.scanbox { position: relative; overflow: hidden; border-radius: 16px; background: var(--green); }
+.scanbox img { display: block; width: 100%; max-height: 240px; object-fit: cover; }
+.scanbox.busy::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--good); box-shadow: 0 0 18px var(--good); animation: down 1.8s ease-in-out infinite alternate; }
+@keyframes down { to { top: calc(100% - 3px); } }
+.pill { display: inline-block; font: 700 13px var(--font-body); color: var(--green); padding: 5px 12px; border-radius: 999px; }
+.tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--green-2); border: 1px solid var(--line); }
+.tag.good { border-color: var(--good); }
+.tag.bad { border-color: var(--bad); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.head { display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+.head > div { min-width: 0; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.head h2 { overflow-wrap: anywhere; }
+.alert { border: 1.5px solid var(--bad); background: rgba(255, 128, 111, 0.12); border-radius: 16px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; }
+.alert svg { color: var(--bad); flex: none; margin-top: 2px; }
+.sec-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.sec-h .count { font: 700 13px var(--font-body); padding: 3px 10px; border-radius: 999px; color: var(--green); }
+.ing { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.ing li { display: flex; gap: 12px; align-items: flex-start; }
+.ing li > div { display: flex; flex-direction: column; min-width: 0; }
+.ing strong { font-weight: 600; overflow-wrap: anywhere; }
+.ing .muted { font-size: 14px; }
+.mark { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: none; color: var(--green); margin-top: 1px; }
+.mark.good { background: var(--good); }
+.mark.bad { background: var(--bad); }
+.nut { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
+.nut div { background: var(--green-2); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; }
+.nut b { font: 700 18px var(--font-display); font-variant-numeric: tabular-nums; }
+.nut span { font-size: 12px; color: var(--muted); }
+
+/* rings, tracker */
+.ring { position: relative; flex: none; }
+.ring-in { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; line-height: 1.1; }
+.ring-in b { font: 700 28px var(--font-display); font-variant-numeric: tabular-nums; }
+.ring-in span { font-size: 11px; color: var(--muted); display: block; }
+.big { display: flex; gap: 18px; align-items: center; }
+.big > div:last-child { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.fruits { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.fruit { display: flex; align-items: center; gap: 8px; background: var(--blue-2); color: var(--white); border: 0; border-radius: 12px; padding: 11px 12px; font: 600 13px var(--font-body); cursor: pointer; text-align: left; min-width: 0; }
+.fruit:active { transform: scale(0.97); }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.addrow { display: flex; gap: 8px; }
+.addrow input { flex: 1; min-width: 0; font: 500 16px var(--font-body); color: var(--white); background: var(--green-2); border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; }
+.addrow .btn { width: auto; min-height: 46px; padding: 10px 16px; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.wcol { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.wcol .v { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.barwrap { height: 84px; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.barwrap i { display: block; width: 100%; max-width: 26px; min-height: 4px; border-radius: 8px 8px 4px 4px; background: var(--blue-2); }
+.barwrap i.hit { background: var(--good); }
+.wcol .d { font-size: 12px; color: var(--muted); font-weight: 600; }
+.wcol.today .d { color: var(--white); }
+.wcol.today .barwrap i { box-shadow: 0 0 0 2px var(--white); }
+.log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.log li { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.log li:first-child { border-top: 0; }
+.log .nm { font-weight: 600; overflow-wrap: anywhere; }
+.log .del { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 8px; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat { background: var(--blue); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 2px; }
+.stat b { font: 700 26px var(--font-display); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 13px; color: var(--muted); }
+
+/* rewards */
+.prog { height: 10px; border-radius: 99px; background: var(--green); overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--good); border-radius: 99px; }
+.badges { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.badge { background: var(--blue); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.badge .bi { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--green); color: var(--muted); }
+.badge.got .bi { background: var(--good); color: var(--green); }
+.badge:not(.got) { opacity: 0.6; }
+.badge strong { font-weight: 600; }
+.pts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.pts li { display: flex; justify-content: space-between; gap: 12px; }
+.pts b { color: var(--good); font-variant-numeric: tabular-nums; }
+
+/* profile */
+.head > div.avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--white); color: var(--green); display: grid; place-items: center; align-items: center; font: 700 24px var(--font-display); flex: none; gap: 0; }
+.scanbox.sm img { max-height: 170px; }
+.kv { display: flex; flex-direction: column; }
+.kv div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--line); }
+.kv div:first-child { border-top: 0; }
+.kv span:first-child { color: var(--muted); }
+.kv span:last-child { text-align: right; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+
+/* photo buttons: the real file input sits on top of the button so a tap opens the camera or gallery natively */
+.filebtn { position: relative; overflow: hidden; }
+.filebtn:focus-within { outline: 2px solid var(--good); outline-offset: 2px; }
+.fileinput { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+/* guest mode */
+.guest { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--green-2); border: 1px dashed rgba(245, 249, 246, 0.32); border-radius: 16px; padding: 10px 12px 10px 14px; margin-bottom: 14px; }
+.guest > div { display: flex; flex-direction: column; min-width: 0; }
+.guest strong { font-weight: 600; }
+.guest .btn { width: auto; min-height: 40px; padding: 8px 14px; font-size: 14px; flex: none; }
+.scrim { position: fixed; inset: 0; z-index: 20; background: rgba(4, 16, 12, 0.62); }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; max-height: 90vh; overflow-y: auto; background: var(--blue); border-top: 1px solid var(--line); border-radius: 24px 24px 0 0;
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); animation: rise .25s ease-out; }
+.sheet-in { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.grab { width: 40px; height: 4px; border-radius: 9px; background: var(--line); margin: 0 auto 4px; }
+@keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.perks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.perks li { display: flex; gap: 10px; align-items: center; }
+.perks .mark { width: 22px; height: 22px; margin-top: 0; }
+.center { text-align: center; }
+details.card summary svg { transition: transform .15s ease; }
+details.card[open] summary svg { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet, details.card summary svg { animation: none; transition: none; }
+  .scanline, .scanbox.busy::after { animation: none; }
+  .btn, .fruit { transition: none; }
+}
+</style>
+
+<div id="app" class="app"></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  const $app = document.getElementById('app');
+  const $toast = document.getElementById('toast');
+
+  /* ---------- storage (per device; every access guarded) ---------- */
+  const mem = {};
+  function sGet(k) { try { const v = localStorage.getItem(k); if (v !== null) return v; } catch (e) {} return mem[k] != null ? mem[k] : null; }
+  function sSet(k, v) { mem[k] = v; try { localStorage.setItem(k, v); } catch (e) {} }
+  function sDel(k) { delete mem[k]; try { localStorage.removeItem(k); } catch (e) {} }
+  function jget(k, f) { try { const v = sGet(k); return v ? JSON.parse(v) : f; } catch (e) { return f; } }
+
+  /* ---------- helpers ---------- */
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const IC = {
+    scan: '<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16"/>',
+    apple: '<path d="M12 8c-1.6-1.6-5.4-1.6-6.4 1.6-1 3.2.6 8.4 3.2 10.4 1 .8 2 .5 3.2 0 1.2.5 2.2.8 3.2 0 2.6-2 4.2-7.2 3.2-10.4C17.4 6.4 13.6 6.4 12 8z"/><path d="M12 8c0-2.2 1-3.8 3-4.6"/>',
+    trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5a2 2 0 0 0 2 4M16 6h3a2 2 0 0 1-2 4M12 13v4M9 20h6M10 17h4"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    minus: '<path d="M5 12h14"/>',
+    camera: '<path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    image: '<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M5 18l5-5 3 3 2-2 4 4"/>',
+    trash: '<path d="M5 7h14M9 7V5h6v2M7 7l1 12h8l1-12"/>',
+    flame: '<path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/>',
+    alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>',
+    back: '<path d="M15 5l-7 7 7 7"/>',
+    lock: '<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/>',
+    chev: '<path d="M6 9l6 6 6-6"/>'
+  };
+  const icon = (n, s) => `<svg width="${s || 20}" height="${s || 20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
+  const logo = '<svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#f5f9f6"/><path d="M9 23c0-8 5-13 14-14 0 8-4 14-14 14z" fill="#0a2c22"/><path d="M9 23c3-4 6-7 10-9" stroke="#f5f9f6" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+  const dk = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const timeStr = (ts) => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  function ring(p, size, sw, color, inner) {
+    const r = (size - sw) / 2, c = 2 * Math.PI * r, o = c * (1 - Math.min(1, Math.max(0, p))), m = size / 2;
+    return `<div class="ring" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${m}" cy="${m}" r="${r}" fill="none" stroke="rgba(245,249,246,.14)" stroke-width="${sw}"/><circle cx="${m}" cy="${m}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${o}" transform="rotate(-90 ${m} ${m})"/></svg><div class="ring-in">${inner}</div></div>`;
+  }
+  function toast(msg) {
+    $toast.textContent = msg; $toast.hidden = false;
+    clearTimeout(toast.t); toast.t = setTimeout(() => { $toast.hidden = true; }, 2600);
+  }
+
+  /* ---------- onboarding questions ---------- */
+  const STEPS = [
+    { title: 'What is your main goal?', sub: 'Every verdict is tuned to it.', groups: [{ key: 'goal', type: 'single', ui: 'cards', opts: [
+      ['healthy', 'Eat healthier', 'Cut the junk, keep it simple'],
+      ['lose', 'Lose weight', 'Watch sugar, fat and calories'],
+      ['muscle', 'Build muscle', 'Look for protein and clean fuel'],
+      ['condition', 'Manage a health condition', 'Flag what matters for you'],
+      ['family', 'Feed my family well', 'Safer everyday choices']] }] },
+    { title: 'How do you eat?', sub: 'We will flag anything that breaks your diet.', groups: [{ key: 'diet', type: 'single', ui: 'cards', opts: [
+      ['anything', 'No restrictions', ''], ['vegetarian', 'Vegetarian', ''], ['vegan', 'Vegan', ''],
+      ['pescatarian', 'Pescatarian', ''], ['halal', 'Halal', ''], ['kosher', 'Kosher', '']] }] },
+    { title: 'Any allergies?', sub: 'Pick all that apply. These trigger a clear warning.', groups: [{ key: 'allergies', type: 'multi', ui: 'chips', none: true, opts: [
+      ['peanuts', 'Peanuts'], ['tree nuts', 'Tree nuts'], ['milk', 'Milk'], ['eggs', 'Eggs'], ['wheat or gluten', 'Wheat or gluten'],
+      ['soy', 'Soy'], ['fish', 'Fish'], ['shellfish', 'Shellfish'], ['sesame', 'Sesame']] }] },
+    { title: 'Any health conditions?', sub: 'Optional context so sugar, salt and fat are judged for you.', groups: [{ key: 'conditions', type: 'multi', ui: 'chips', none: true, opts: [
+      ['diabetes', 'Diabetes'], ['high blood pressure', 'High blood pressure'], ['high cholesterol', 'High cholesterol'],
+      ['heart disease', 'Heart disease'], ['kidney disease', 'Kidney disease'], ['sensitive gut or IBS', 'Sensitive gut or IBS'], ['pregnancy', 'Pregnancy']] }] },
+    { title: 'A little about you', sub: 'This keeps portions and advice realistic.', groups: [
+      { key: 'age', label: 'Age', type: 'single', ui: 'chips', opts: [['u18', 'Under 18'], ['18-29', '18 to 29'], ['30-44', '30 to 44'], ['45-59', '45 to 59'], ['60+', '60 and over']] },
+      { key: 'activity', label: 'Activity', type: 'single', ui: 'chips', opts: [['low', 'Mostly seated'], ['light', 'Lightly active'], ['active', 'Active'], ['very', 'Very active']] }] },
+    { title: 'Your daily fruit goal', sub: 'Servings of fruit per day. Many guidelines suggest 2 to 3, so pick what feels doable.', groups: [{ key: 'fruitGoal', type: 'stepper' }] }
+  ];
+  function lab(key, val) {
+    for (const s of STEPS) for (const g of s.groups) if (g.key === key && g.opts) { const o = g.opts.find((x) => x[0] === val); if (o) return o[1]; }
+    return val;
+  }
+
+  /* ---------- state ---------- */
+  let view = 'welcome', tab = 'scan', user = null, D = null, ob = null;
+  let form = { name: '', email: '', password: '' };
+  let scan = { status: 'idle' }, ctl = null, confirmReset = false, sheet = false;
+  const GUEST_KEY = '__guest__';
+  const isGuest = () => !!(user && user.guest);
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || '').split(',')[1] || '');
+      reader.onerror = () => reject(new Error('Could not read the selected photo.'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function freshData() { return { profile: null, log: [], points: 0, badges: [], goalDays: {}, claimedWeeks: {}, scans: 0 }; }
+  function loadData() {
+    D = Object.assign(freshData(), jget('ll_data_' + user.email, {}));
+    D.log = D.log || []; D.badges = D.badges || []; D.goalDays = D.goalDays || {}; D.claimedWeeks = D.claimedWeeks || {};
+  }
+  function save() { if (user) sSet('ll_data_' + user.email, JSON.stringify(D)); }
+  async function hash(s) {
+    try { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join(''); }
+    catch (e) { return 'x' + btoa(unescape(encodeURIComponent(s))); }
+  }
+
+  /* ---------- tracker + rewards logic ---------- */
+  const FRUITS = [['Apple', '#e5484d'], ['Banana', '#f5d547'], ['Orange', '#ff9f43'], ['Grapes', '#8e5bd8'], ['Strawberry', '#ef476f'], ['Mango', '#ffb02e'],
+    ['Watermelon', '#ff6b81'], ['Pineapple', '#e8c53a'], ['Kiwi', '#8bc34a'], ['Papaya', '#ff8c42'], ['Blueberries', '#5b7cff'], ['Pear', '#b5d46b']];
+  const LEVELS = [[0, 'Seed'], [40, 'Sprout'], [120, 'Sapling'], [260, 'Grove'], [450, 'Orchard'], [700, 'Harvest']];
+  function levelOf(p) {
+    let i = 0; LEVELS.forEach((l, j) => { if (p >= l[0]) i = j; });
+    const cur = LEVELS[i], next = LEVELS[i + 1];
+    return { i, name: cur[1], next: next ? next[1] : null, pct: next ? Math.round((p - cur[0]) / (next[0] - cur[0]) * 100) : 100, toNext: next ? next[0] - p : 0 };
+  }
+  const fruitOn = (key) => D.log.filter((e) => e.isFruit && dk(new Date(e.ts)) === key).length;
+  const totalFruit = () => D.log.filter((e) => e.isFruit).length;
+  function streak() {
+    const has = new Set(D.log.map((e) => dk(new Date(e.ts))));
+    let n = 0; const d = new Date();
+    if (!has.has(dk(d))) d.setDate(d.getDate() - 1);
+    while (has.has(dk(d))) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  const BADGES = [
+    { id: 'first', name: 'First scan', desc: 'Scan your first food', ic: 'scan', ok: () => D.scans >= 1 },
+    { id: 'scan5', name: 'Label reader', desc: 'Scan 5 foods', ic: 'scan', ok: () => D.scans >= 5 },
+    { id: 'scan15', name: 'Ingredient detective', desc: 'Scan 15 foods', ic: 'scan', ok: () => D.scans >= 15 },
+    { id: 'goal', name: 'Goal getter', desc: 'Hit your daily fruit goal', ic: 'apple', ok: () => Object.keys(D.goalDays).length >= 1 },
+    { id: 'fruit25', name: 'Fruit fan', desc: 'Log 25 fruit servings', ic: 'apple', ok: () => totalFruit() >= 25 },
+    { id: 'streak3', name: 'Three in a row', desc: 'Log food 3 days running', ic: 'flame', ok: () => streak() >= 3 },
+    { id: 'streak7', name: 'Full week', desc: 'Log food 7 days running', ic: 'flame', ok: () => streak() >= 7 },
+    { id: 'clean5', name: 'Clean eater', desc: 'Log 5 foods rated safe', ic: 'check', ok: () => D.log.filter((e) => e.verdict === 'safe').length >= 5 }
+  ];
+  function award(n) {
+    const before = levelOf(D.points).i; D.points += n; const after = levelOf(D.points);
+    if (after.i > before) setTimeout(() => toast('Level up: ' + after.name), 700);
+  }
+  function checkBadges() {
+    BADGES.forEach((b) => {
+      if (!D.badges.includes(b.id) && b.ok()) { D.badges.push(b.id); D.points += 15; setTimeout(() => toast('Badge unlocked: ' + b.name + ' (+15)'), 400); }
+    });
+  }
+  function addEntry(e, pts) {
+    D.log.push(Object.assign({ id: Date.now() + '' + Math.floor(Math.random() * 1000), ts: Date.now() }, e));
+    award(pts);
+    const t = dk(new Date());
+    if (!D.goalDays[t] && fruitOn(t) >= D.profile.fruitGoal) { D.goalDays[t] = true; award(20); setTimeout(() => toast('Daily fruit goal reached (+20)'), 500); }
+    checkBadges(); save(); render();
+  }
+  function weekStart() { const d = new Date(); const dow = (d.getDay() + 6) % 7; return new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow); }
+
+  /* ---------- scanning ---------- */
+  const ERR = {
+    not_granted: 'Scanning needs a valid Groq API key. Add one and try again.',
+    rate_limited: 'Too many scans in a short time. Wait a minute, then try again.',
+    image_rejected: 'That photo could not be read. Try again, or on iPhone set Camera formats to Most Compatible.',
+    session_expired: 'Your scanning session expired. Please try again.',
+    refused: 'That image could not be analyzed. Try a clearer photo of the label.',
+    invalid_json: 'The result came back garbled. Try a clearer, closer photo.',
+    images_unavailable: 'Photo scanning is not available here. Type the ingredients instead.'
+  };
+  function buildPrompt(text, hasImage) {
+    const p = D.profile;
+    return [
+      'You are the ingredient analyst inside a food-scanning app.',
+      hasImage ? 'The attached photo shows a packaged-food label, an ingredient list, or a meal or piece of food.' : 'The person typed the food or ingredient list below instead of sending a photo.',
+      text ? 'Typed text: """' + text.slice(0, 2000) + '"""' : '',
+      '',
+      'Person profile: goal = ' + lab('goal', p.goal) + '; diet = ' + lab('diet', p.diet) + '; allergies = ' + (p.allergies.length ? p.allergies.join(', ') : 'none') +
+        '; conditions = ' + (p.conditions.length ? p.conditions.join(', ') : 'none') + '; age = ' + lab('age', p.age) + '; activity = ' + lab('activity', p.activity) + '.',
+      '',
+      'Rules:',
+      '- If an ingredient list is readable, base everything on it and set readFromLabel true. Otherwise identify the food, list what it typically contains, set readFromLabel false and confidence to low or medium.',
+      '- If it is not food, set isFood false and leave the rest empty.',
+      '- "good" = ingredients that help (whole foods, fiber, protein, vitamins, healthy fats). "bad" = added sugars, refined oils, excess sodium, trans fats, artificial colors, sweeteners, preservatives of concern, or anything that conflicts with the profile. Give each a plain-language reason of at most 14 words. At most 6 per list. Never put one ingredient in both lists.',
+      '- verdict: "safe" (fine for this person), "moderate" (okay occasionally or in small portions) or "avoid" (conflicts with an allergy, diet or condition, or mostly harmful). Any ingredient matching an allergy means "avoid" and goes into allergenAlerts, including "may contain" warnings.',
+      '- score is 0 to 100, how good this food is for this person.',
+      '- isFruit is true only for whole fruit (fresh, frozen or dried) that counts as a fruit serving.',
+      '- nutrition: use label values per serving or a sensible estimate; use null when unknown.',
+      '- summary is 1 or 2 sentences. personalNote is 1 sentence tying the verdict to the profile. Do not diagnose or give medical advice.',
+      '',
+      'Reply with only this JSON:',
+      '{"isFood":true,"name":"short food name","category":"packaged|fruit|vegetable|meal|drink|snack|other","isFruit":false,"verdict":"safe|moderate|avoid","score":0,"summary":"","personalNote":"","contains":["ingredient"],"good":[{"name":"","why":""}],"bad":[{"name":"","why":""}],"allergenAlerts":["ingredient"],"nutrition":{"calories":null,"sugar_g":null,"sodium_mg":null,"fat_g":null,"protein_g":null,"fiber_g":null},"readFromLabel":true,"confidence":"high|medium|low"}'
+    ].filter((x) => x !== '').join('\n');
+  }
+  function normalize(r) {
+    const arr = (a) => Array.isArray(a) ? a : [];
+    const str = (s, n) => String(s == null ? '' : s).slice(0, n);
+    const pairs = (a) => arr(a).slice(0, 6).map((x) => ({ name: str(x && x.name, 60), why: str(x && x.why, 120) })).filter((x) => x.name);
+    const n = r && r.nutrition ? r.nutrition : {};
+    return {
+      isFood: r && r.isFood !== false,
+      name: str(r && r.name, 70) || 'Scanned food',
+      category: str(r && r.category, 20),
+      isFruit: !!(r && r.isFruit),
+      verdict: ['safe', 'moderate', 'avoid'].includes(r && r.verdict) ? r.verdict : 'moderate',
+      score: Math.max(0, Math.min(100, Math.round(Number(r && r.score) || 0))),
+      summary: str(r && r.summary, 300), personalNote: str(r && r.personalNote, 240),
+      contains: arr(r && r.contains).slice(0, 40).map((x) => str(x, 50)).filter(Boolean),
+      good: pairs(r && r.good), bad: pairs(r && r.bad),
+      allergenAlerts: arr(r && r.allergenAlerts).slice(0, 8).map((x) => str(x, 50)).filter(Boolean),
+      nutrition: { calories: n.calories, sugar_g: n.sugar_g, sodium_mg: n.sodium_mg, fat_g: n.fat_g, protein_g: n.protein_g, fiber_g: n.fiber_g },
+      readFromLabel: !!(r && r.readFromLabel), confidence: ['high', 'medium', 'low'].includes(r && r.confidence) ? r.confidence : 'medium'
+    };
+  }
+  /* Re-encode every photo as an upright JPEG (long side up to 2000px, quality 0.92).
+     Fixes camera rotation, turns unusual formats into JPEG where the browser can decode them,
+     and keeps uploads small. Falls back to the original file if the browser cannot decode it. */
+  async function prepareImage(file) {
+    try {
+      let bmp;
+      try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+      catch (e) { bmp = await createImageBitmap(file); }
+      const sc = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+      const w = Math.max(1, Math.round(bmp.width * sc)), h = Math.max(1, Math.round(bmp.height * sc));
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(bmp, 0, 0, w, h);
+      if (bmp.close) bmp.close();
+      const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.92));
+      if (blob && blob.size > 0) return blob;
+    } catch (e) {}
+    return file;
+  }
+  async function analyze(file, text) {
+    if (scan.preview) { try { URL.revokeObjectURL(scan.preview); } catch (e) {} }
+    ctl = new AbortController();
+    scan = { status: 'loading', preview: null, added: false };
+    render();
+    const mine = scan;
+    const fail = (msg) => { if (scan !== mine) return; scan = { status: 'error', error: msg }; render(); };
+    let blob = null;
+    if (file) {
+      if (!(file.size > 0)) return fail('That photo came through empty. Try taking it again.');
+      blob = await prepareImage(file);
+      if (scan !== mine) return;
+      try { mine.preview = URL.createObjectURL(blob); } catch (e) {}
+      render();
+    }
+    if (scan !== mine) return;
+    try {
+      let imageData = '', mimeType = 'image/jpeg';
+      if (blob) {
+        imageData = await blobToBase64(blob);
+        if (!imageData) return fail('Could not read that photo. Please try taking it again.');
+        mimeType = blob.type || (file && file.type) || 'image/jpeg';
+      }
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ctl.signal,
+        body: JSON.stringify({ prompt: buildPrompt(text, !!file), imageData, mimeType })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (scan !== mine) return;
+      if (!response.ok) {
+        const detail = payload && payload.error && (payload.error.message || payload.error);
+        if (response.status === 401 || response.status === 403) throw new Error('The app server could not authenticate with Groq. The site owner needs to check the server API key.');
+        if (response.status === 429) throw new Error('Groq usage limit reached. Wait a little, check your Groq limits, and try again.');
+        throw new Error((typeof detail === 'string' ? detail : '') || 'Groq could not analyze this food. Please try again. Please try again in a moment.');
+      }
+      const rawText = payload && payload.choices && payload.choices[0] && payload.choices[0].message ? String(payload.choices[0].message.content || '').trim() : '';
+      if (!rawText) throw new Error('Groq returned no analysis. Try a clearer photo of the food label.');
+      let raw;
+      try { raw = JSON.parse(rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')); }
+      catch (e) { throw new Error('The result could not be read. Try a clearer, closer photo of the label.'); }
+      const r = normalize(raw);
+      if (r.isFood) { D.scans += 1; award(10); checkBadges(); save(); toast('Scan complete (+10)'); }
+      scan = { status: 'done', preview: mine.preview, result: r, added: false };
+      render();
+    } catch (e) {
+      if (scan !== mine) return;
+      if (e && e.name === 'AbortError') { scan = { status: 'idle' }; render(); return; }
+      fail((e && e.message) || 'Something went wrong. Check your connection and try again.');
+    }
+  }
+
+  /* ---------- views ---------- */
+  function welcomeView() {
+    return `<section class="welcome">
+      <div class="brand">${logo}<span>Food Lens</span></div>
+      <div class="hero"><svg viewBox="0 0 320 250" role="img" aria-label="A scan frame around an apple and a food package">
+        <circle cx="160" cy="125" r="112" fill="#112a4d"/>
+        <rect x="188" y="70" width="70" height="104" rx="10" fill="#f5f9f6"/>
+        <rect x="198" y="86" width="50" height="20" rx="4" fill="#0a2c22"/>
+        <rect x="198" y="116" width="50" height="5" rx="2.5" fill="#6fdcab"/>
+        <rect x="198" y="128" width="38" height="5" rx="2.5" fill="#a9bdb4"/>
+        <rect x="198" y="140" width="44" height="5" rx="2.5" fill="#a9bdb4"/>
+        <rect x="198" y="152" width="30" height="5" rx="2.5" fill="#ff806f"/>
+        <circle cx="112" cy="140" r="46" fill="#e5484d"/>
+        <circle cx="130" cy="122" r="10" fill="#ff8a8e" opacity=".55"/>
+        <rect x="109" y="88" width="5" height="18" rx="2.5" fill="#0e382c"/>
+        <path d="M114 96c0-14 8-24 22-28 0 14-8 24-22 28z" fill="#6fdcab"/>
+        <path d="M60 70V50a8 8 0 0 1 8-8h20M232 42h20a8 8 0 0 1 8 8v20M260 180v20a8 8 0 0 1-8 8h-20M88 208H68a8 8 0 0 1-8-8v-20" fill="none" stroke="#f5f9f6" stroke-width="5" stroke-linecap="round"/>
+        <line class="scanline" x1="52" y1="125" x2="268" y2="125" stroke="#6fdcab" stroke-width="3" stroke-linecap="round"/>
+      </svg></div>
+      <div class="stack" style="gap:10px"><h1>Know what is in your food before you eat it.</h1>
+      <p class="lead">Snap a label, see the good and bad ingredients, and track your fruit every day.</p></div>
+      <div class="stack" style="gap:10px">
+        <button class="btn primary" data-act="start">Get started</button>
+        <button class="btn ghost" data-act="signin">Sign in</button>
+        <button class="linkbtn" data-act="guest">Continue without signing in</button>
+      </div></section>`;
+  }
+  function authView(mode) {
+    const up = mode === 'signup', g = !!(user && user.guest);
+    const note = up ? (g ? 'Your guest progress moves into the new account.' : 'Your account and food log stay on this device.')
+      : (g ? 'Signing in switches to that account. Your guest progress stays here until you create an account.' : 'Sign in to pick up where you left off.');
+    return `<section class="stack" style="gap:20px">
+      <button class="iconbtn" data-act="authBack" aria-label="Back">${icon('back')}</button>
+      <div class="stack" style="gap:8px"><h1>${up ? 'Create your account' : 'Welcome back'}</h1>
+      <p class="muted">${note}</p></div>
+      <form id="${up ? 'f-signup' : 'f-signin'}" class="stack" novalidate>
+        ${up ? `<div class="field"><label for="name">Your name</label><input id="name" data-bind="name" autocomplete="name" value="${esc(form.name)}" placeholder="Maya"></div>` : ''}
+        <div class="field"><label for="email">Email</label><input id="email" type="email" data-bind="email" autocomplete="email" value="${esc(form.email)}" placeholder="you@example.com"></div>
+        <div class="field"><label for="pw">Password</label><input id="pw" type="password" data-bind="password" autocomplete="${up ? 'new-password' : 'current-password'}" value="${esc(form.password)}" placeholder="${up ? 'At least 6 characters' : 'Your password'}"></div>
+        <p class="err" id="err" role="alert"></p>
+        <button class="btn primary" type="submit">${up ? 'Create account' : 'Sign in'}</button>
+      </form>
+      <p class="muted center">${up ? 'Already have an account?' : 'New here?'} <button class="linkbtn" data-act="${up ? 'signin' : 'start'}">${up ? 'Sign in' : 'Get started'}</button></p>
+      ${g ? '' : '<p class="center"><button class="linkbtn" data-act="guest">Continue without signing in</button></p>'}
+    </section>`;
+  }
+  function obView() {
+    const s = STEPS[ob.step], last = ob.step === STEPS.length - 1;
+    const bar = STEPS.map((_, i) => `<i class="${i <= ob.step ? 'on' : ''}"></i>`).join('');
+    const canBack = ob.step > 0 || ob.edit;
+    const groups = s.groups.map((g) => {
+      if (g.type === 'stepper') {
+        return `<div class="card"><div class="stepper"><button class="iconbtn" data-act="goal" data-d="-1" aria-label="Fewer servings">${icon('minus', 22)}</button><b>${ob.ans.fruitGoal}</b><button class="iconbtn" data-act="goal" data-d="1" aria-label="More servings">${icon('plus', 22)}</button></div><p class="muted" style="text-align:center">servings of fruit per day</p></div>`;
+      }
+      const sel = (v) => g.type === 'multi' ? ob.ans[g.key].includes(v) : ob.ans[g.key] === v;
+      let items = g.opts.map((o) => g.ui === 'cards'
+        ? `<button class="opt" data-act="pick" data-k="${g.key}" data-v="${esc(o[0])}" aria-pressed="${sel(o[0])}"><div>${esc(o[1])}${o[2] ? `<span class="sub">${esc(o[2])}</span>` : ''}</div><span class="tick">${sel(o[0]) ? icon('check', 14) : ''}</span></button>`
+        : `<button class="chip" data-act="pick" data-k="${g.key}" data-v="${esc(o[0])}" aria-pressed="${sel(o[0])}">${esc(o[1])}</button>`);
+      if (g.none) items.unshift(`<button class="chip" data-act="pick" data-k="${g.key}" data-v="none" aria-pressed="${sel('none')}">None</button>`);
+      return `<div>${g.label ? `<p class="group-label">${g.label}</p>` : ''}<div class="${g.ui === 'cards' ? 'opts' : 'chips'}">${items.join('')}</div></div>`;
+    }).join('');
+    return `<section class="stack" style="gap:20px">
+      <div class="topline">${canBack ? `<button class="iconbtn" data-act="prev" aria-label="Back">${icon('back')}</button>` : ''}<div class="bar" aria-label="Step ${ob.step + 1} of ${STEPS.length}">${bar}</div></div>
+      <div class="stack" style="gap:8px"><h1>${esc(s.title)}</h1><p class="muted">${esc(s.sub)}</p></div>
+      ${groups}
+      <button class="btn primary" data-act="next" ${obValid() ? '' : 'disabled'}>${last ? (ob.edit ? 'Save answers' : 'Finish setup') : 'Continue'}</button>
+    </section>`;
+  }
+  function obValid() {
+    return STEPS[ob.step].groups.every((g) => g.type === 'stepper' || (g.type === 'multi' ? ob.ans[g.key].length > 0 : !!ob.ans[g.key]));
+  }
+  function startOb(edit) {
+    const p = D.profile;
+    ob = { step: 0, edit: !!edit, ans: p ? { goal: p.goal, diet: p.diet, allergies: p.allergies.length ? p.allergies.slice() : ['none'], conditions: p.conditions.length ? p.conditions.slice() : ['none'], age: p.age, activity: p.activity, fruitGoal: p.fruitGoal }
+      : { goal: '', diet: '', allergies: [], conditions: [], age: '', activity: '', fruitGoal: 3 } };
+    view = 'onboarding';
+  }
+
+  function navView() {
+    const items = [['scan', 'Scan', 'scan'], ['fruits', 'My Fruits', 'apple'], ['rewards', 'Rewards', 'trophy'], ['me', 'Me', 'user']];
+    return `<nav class="nav" aria-label="Main"><div class="nav-in">${items.map((i) => `<button data-act="tab" data-t="${i[0]}" ${tab === i[0] ? 'aria-current="page"' : ''}>${icon(i[2], 22)}<span>${i[1]}</span></button>`).join('')}</div></nav>`;
+  }
+
+  const V = { safe: { label: 'Safe to eat', c: 'var(--good)' }, moderate: { label: 'Eat in moderation', c: 'var(--warn)' }, avoid: { label: 'Better to avoid', c: 'var(--bad)' } };
+  function scanView() {
+    const first = isGuest() ? 'there' : esc(user.name.split(' ')[0]);
+    let body = '';
+    if (scan.status === 'loading') {
+      body = `<div class="card stack">${scan.preview ? `<div class="scanbox busy"><img src="${scan.preview}" alt="Your photo being scanned"></div>` : ''}
+        <div><h3>Reading the ingredients</h3><p class="muted">Checking them against your goals, diet and allergies.</p></div>
+        <button class="btn ghost" data-act="cancelScan">Cancel</button></div>`;
+    } else if (scan.status === 'done') {
+      body = resultView();
+    } else {
+      body = (scan.status === 'error' ? `<div class="alert" role="alert">${icon('alert')}<p>${esc(scan.error)}</p></div>` : '') + `
+        <div class="card drop">
+          <div class="ico">${icon('scan', 30)}</div>
+          <div><h2>Scan a label or a meal</h2><p class="muted" style="margin-top:4px">Photograph the ingredient list on a package, or the food itself.</p></div>
+          <div class="row" style="width:100%">
+            <button class="btn primary" type="button" data-act="takePhoto">${icon('camera')} Take photo</button><input id="cam" type="file" accept="image/*" capture="environment" aria-label="Take a photo with your camera" hidden>
+            <label class="btn blue filebtn">${icon('image')} Upload<input id="gal" class="fileinput" type="file" accept="image/*" aria-label="Choose a photo from your gallery"></label>
+          </div>
+          <p class="muted small">Tip: fill the frame with the ingredient list, hold steady, and use good light.</p>
+        </div>
+        <details class="card"><summary>No photo? Type it instead ${icon('chev', 18)}</summary>
+          <form id="f-manual" class="stack" style="gap:10px"><div class="field"><label for="manual">Food name or ingredients</label><textarea id="manual" placeholder="e.g. Oats, sugar, palm oil, soy lecithin, artificial flavour"></textarea></div><button class="btn blue" type="submit">Check it</button></form>
+        </details>`;
+    }
+    return `<section class="stack"><header class="stack" style="gap:4px"><p class="muted">Hi ${first}</p><h1>What are you eating?</h1></header>${body}</section>`;
+  }
+  function resultView() {
+    const r = scan.result;
+    if (!r.isFood) {
+      return `<div class="card stack">${scan.preview ? `<div class="scanbox"><img src="${scan.preview}" alt="Your photo"></div>` : ''}<h2>That does not look like food</h2><p class="muted">Try a clearer photo of the ingredient list or the meal.</p><button class="btn primary" data-act="again">Try again</button></div>`;
+    }
+    const v = V[r.verdict];
+    const list = (items, kind) => items.length
+      ? `<ul class="ing">${items.map((i) => `<li><span class="mark ${kind}">${icon(kind === 'good' ? 'check' : 'x', 14)}</span><div><strong>${esc(i.name)}</strong><span class="muted">${esc(i.why)}</span></div></li>`).join('')}</ul>`
+      : `<p class="muted">${kind === 'good' ? 'Nothing here stands out as especially good.' : 'No red flags found.'}</p>`;
+    const low = (a) => a.map((x) => x.name.toLowerCase());
+    const gl = low(r.good), bl = low(r.bad);
+    const cls = (c) => { const l = c.toLowerCase(); return gl.some((g) => l.includes(g) || g.includes(l)) ? 'good' : bl.some((b) => l.includes(b) || b.includes(l)) ? 'bad' : ''; };
+    const NUT = [['calories', 'Calories', ''], ['sugar_g', 'Sugar', ' g'], ['sodium_mg', 'Sodium', ' mg'], ['fat_g', 'Fat', ' g'], ['protein_g', 'Protein', ' g'], ['fiber_g', 'Fiber', ' g']];
+    const nut = NUT.filter((n) => Number.isFinite(Number(r.nutrition[n[0]])) && r.nutrition[n[0]] !== null).map((n) => `<div><b>${esc(Math.round(Number(r.nutrition[n[0]])))}${n[2]}</b><span>${n[1]}</span></div>`).join('');
+    return `<div class="stack">
+      <div class="card stack">
+        ${scan.preview ? `<div class="scanbox sm"><img src="${scan.preview}" alt="Your photo"></div>` : ''}
+        <div class="head"><div><h2>${esc(r.name)}</h2><span class="pill" style="background:${v.c}">${v.label}</span></div>
+        ${ring(r.score / 100, 84, 8, v.c, `<div><b>${r.score}</b><span>of 100</span></div>`)}</div>
+        ${r.summary ? `<p>${esc(r.summary)}</p>` : ''}
+        ${r.personalNote ? `<p class="muted">${esc(r.personalNote)}</p>` : ''}
+      </div>
+      ${r.allergenAlerts.length ? `<div class="alert" role="alert">${icon('alert')}<div><strong>Allergy warning</strong><p>Contains or may contain ${r.allergenAlerts.map(esc).join(', ')}.</p></div></div>` : ''}
+      <div class="card"><div class="sec-h"><h3>Good ingredients</h3><span class="count" style="background:var(--good)">${r.good.length}</span></div>${list(r.good, 'good')}</div>
+      <div class="card"><div class="sec-h"><h3>Bad ingredients</h3><span class="count" style="background:var(--bad)">${r.bad.length}</span></div>${list(r.bad, 'bad')}</div>
+      ${r.contains.length ? `<div class="card"><div class="sec-h"><h3>What is in it</h3></div><div class="tags">${r.contains.map((c) => `<span class="tag ${cls(c)}">${esc(c)}</span>`).join('')}</div></div>` : ''}
+      ${nut ? `<div class="card"><div class="sec-h"><h3>Nutrition snapshot</h3></div><div class="nut">${nut}</div></div>` : ''}
+      <p class="muted small">${r.readFromLabel ? 'Read from the label.' : 'Estimated from the photo, so check the package.'} Confidence: ${r.confidence}. This is guidance based on your profile, not medical advice. If you have a serious allergy, always read the label yourself.</p>
+      <div class="row"><button class="btn primary" data-act="addScan" ${scan.added ? 'disabled' : ''}>${scan.added ? 'Added to My Fruits' : 'Add to My Fruits'}</button><button class="btn ghost" data-act="again">Scan another</button></div>
+      ${isGuest() ? '<p class="muted small center">You are in guest mode. <button class="linkbtn" data-act="start" style="font-size:13px">Create an account</button> to keep your history under your name.</p>' : ''}
+    </div>`;
+  }
+
+  function fruitsView() {
+    const goal = D.profile.fruitGoal, today = new Date(), tk = dk(today), n = fruitOn(tk);
+    const msg = n === 0 ? 'Start with one serving.' : n < goal ? (goal - n) + ' more to reach your goal.' : 'Goal reached. Nice work.';
+    const days = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d); }
+    const counts = days.map((d) => fruitOn(dk(d))), mx = Math.max(goal, ...counts);
+    const week = days.map((d, i) => `<div class="wcol ${i === 6 ? 'today' : ''}"><span class="v">${counts[i]}</span><div class="barwrap"><i class="${counts[i] >= goal ? 'hit' : ''}" style="height:${Math.max(4, Math.round(counts[i] / mx * 84))}px"></i></div><span class="d">${'SMTWTFS'[d.getDay()]}</span></div>`).join('');
+    const todays = D.log.filter((e) => dk(new Date(e.ts)) === tk).sort((a, b) => b.ts - a.ts);
+    const dotc = (e) => e.verdict ? V[e.verdict].c : (e.isFruit ? 'var(--good)' : 'var(--muted)');
+    const logHtml = todays.length ? `<ul class="log">${todays.map((e) => `<li><span class="dot" style="background:${dotc(e)}"></span><div><div class="nm">${esc(e.name)}</div><div class="muted small">${timeStr(e.ts)} · ${e.kind === 'scan' ? 'Scanned' : 'Logged'}${e.isFruit ? ' · Fruit' : ''}${e.verdict ? ' · ' + V[e.verdict].label : ''}</div></div><button class="del" data-act="del" data-id="${esc(e.id)}" aria-label="Remove ${esc(e.name)}">${icon('trash', 18)}</button></li>`).join('')}</ul>`
+      : '<p class="muted">Nothing logged yet. Tap a fruit above or scan a food.</p>';
+    return `<section class="stack">
+      <header class="stack" style="gap:4px"><p class="muted">${today.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>My Fruits</h1></header>
+      <div class="card big">${ring(n / goal, 112, 11, 'var(--good)', `<div><b>${n}/${goal}</b><span>servings</span></div>`)}<div><h3>Today</h3><p class="muted">${msg}</p></div></div>
+      <div class="card stack" style="gap:12px"><h3>Add a serving</h3>
+        <div class="fruits">${FRUITS.map((f) => `<button class="fruit" data-act="fruit" data-v="${f[0]}"><span class="dot" style="background:${f[1]}"></span>${f[0]}</button>`).join('')}</div>
+        <form id="f-custom" class="addrow"><input id="custom" placeholder="Another fruit" aria-label="Another fruit" maxlength="40"><button class="btn primary" type="submit">Add</button></form></div>
+      <div class="card stack" style="gap:12px"><div class="sec-h" style="margin:0"><h3>Last 7 days</h3><span class="muted small">Mint = goal met</span></div><div class="week">${week}</div></div>
+      <div class="stats"><div class="stat"><b>${streak()}</b><span>day streak</span></div><div class="stat"><b>${D.scans}</b><span>foods scanned</span></div></div>
+      <div class="card"><div class="sec-h"><h3>Today's log</h3></div>${logHtml}</div>
+    </section>`;
+  }
+
+  function rewardsView() {
+    const L = levelOf(D.points), goal = D.profile.fruitGoal, ws = weekStart();
+    let hit = 0; for (let i = 0; i < 7; i++) { const d = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + i); if (fruitOn(dk(d)) >= goal) hit++; }
+    const wk = dk(ws), target = 5, claimed = !!D.claimedWeeks[wk], ready = hit >= target && !claimed;
+    return `<section class="stack">
+      <header class="stack" style="gap:4px"><p class="muted">Keep eating well, keep growing</p><h1>Rewards</h1></header>
+      <div class="card stack"><div class="head"><div><p class="muted small">Level ${L.i + 1}</p><h2>${L.name}</h2></div><div style="align-items:flex-end"><b style="font:700 30px var(--font-display);font-variant-numeric:tabular-nums">${D.points}</b><span class="muted small">points</span></div></div>
+        <div class="prog" role="progressbar" aria-valuenow="${L.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${L.pct}%"></i></div>
+        <p class="muted small">${L.next ? L.toNext + ' points to ' + L.next : 'Top level reached'}</p></div>
+      <div class="card stack"><div class="head"><div><h3>Weekly challenge</h3><p class="muted">Hit your fruit goal on ${target} days this week.</p></div><span class="pill" style="background:var(--white)">+50</span></div>
+        <div class="prog"><i style="width:${Math.min(100, Math.round(hit / target * 100))}%"></i></div>
+        <p class="muted small">${Math.min(hit, target)} of ${target} days</p>
+        <button class="btn ${ready ? 'primary' : 'blue'}" data-act="claim" ${ready ? '' : 'disabled'}>${claimed ? 'Claimed this week' : ready ? 'Claim 50 points' : 'Keep going'}</button></div>
+      <div class="stats"><div class="stat"><b>${streak()}</b><span>day streak</span></div><div class="stat"><b>${D.badges.length}/${BADGES.length}</b><span>badges</span></div></div>
+      <h2 style="margin-top:6px">Badges</h2>
+      <div class="badges">${BADGES.map((b) => { const got = D.badges.includes(b.id); return `<div class="badge ${got ? 'got' : ''}"><div class="bi">${icon(got ? b.ic : 'lock', 20)}</div><strong>${b.name}</strong><span class="muted small">${b.desc}</span></div>`; }).join('')}</div>
+      <div class="card"><h3 style="margin-bottom:10px">How points work</h3><ul class="pts"><li><span>Scan a food</span><b>+10</b></li><li><span>Add a scan to your log</span><b>+5</b></li><li><span>Log a fruit serving</span><b>+5</b></li><li><span>Reach your daily fruit goal</span><b>+20</b></li><li><span>Unlock a badge</span><b>+15</b></li></ul></div>
+    </section>`;
+  }
+
+  function meView() {
+    const p = D.profile, g = isGuest();
+    const cap = (a) => a.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(', ');
+    const rows = [['Goal', lab('goal', p.goal)], ['Diet', lab('diet', p.diet)], ['Allergies', p.allergies.length ? cap(p.allergies) : 'None'], ['Conditions', p.conditions.length ? cap(p.conditions) : 'None'],
+      ['Age', lab('age', p.age)], ['Activity', lab('activity', p.activity)], ['Fruit goal', p.fruitGoal + ' servings a day']];
+    return `<section class="stack">
+      <header class="head" style="justify-content:flex-start"><div class="avatar">${g ? icon('user', 26) : esc(user.name.trim().charAt(0).toUpperCase() || '?')}</div><div><h1 style="font-size:24px">${esc(user.name)}</h1><p class="muted" style="overflow-wrap:anywhere">${g ? 'Not signed in' : esc(user.email)}</p></div></header>
+      ${g ? '<div class="card stack" style="gap:12px"><h3>Save your progress</h3><p class="muted">Create a free account to keep your scans, fruit log and points under your name. Your guest progress moves over automatically.</p><div class="row"><button class="btn primary" data-act="start">Create account</button><button class="btn ghost" data-act="signin">Sign in</button></div></div>' : ''}
+      <div class="card"><div class="sec-h"><h3>Your profile</h3></div><div class="kv">${rows.map((r) => `<div><span>${r[0]}</span><span>${esc(r[1])}</span></div>`).join('')}</div></div>
+      <button class="btn blue" data-act="edit">Update my answers</button>
+      <button class="btn ghost" data-act="resetAsk">${confirmReset ? 'Tap again to erase my progress' : 'Reset my progress'}</button>
+      <button class="btn ghost" data-act="signout">${g ? 'Leave guest mode' : 'Sign out'}</button>
+      <p class="muted small">Food Lens gives food guidance based on what it can read and what you told it. It is not medical advice. ${g ? 'Guest progress is stored in this browser only.' : 'Your account and log are stored on this device only.'}</p>
+    </section>`;
+  }
+
+  function guestBanner() {
+    return `<div class="guest"><div><strong>Guest mode</strong><span class="muted small">Sign in to keep your progress.</span></div><button class="btn primary" data-act="start">Save progress</button></div>`;
+  }
+  function sheetView() {
+    return `<div class="scrim" data-act="closeSheet"></div>
+      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t"><div class="sheet-in">
+        <div class="grab"></div>
+        <h2 id="sh-t">Sign in to save your progress</h2>
+        <p class="muted">You are using Food Lens as a guest, so nothing is tied to an account yet.</p>
+        <ul class="perks"><li><span class="mark good">${icon('check', 13)}</span><span>Scans, fruit log and points stay under your name</span></li><li><span class="mark good">${icon('check', 13)}</span><span>Everything you did as a guest moves over</span></li></ul>
+        <button id="sheet-primary" class="btn primary" data-act="start">Create free account</button>
+        <button class="btn ghost" data-act="signin">Sign in</button>
+        <button class="linkbtn" data-act="closeSheet">Maybe later</button>
+      </div></div>`;
+  }
+  function render() {
+    let html;
+    if (view === 'welcome') html = welcomeView();
+    else if (view === 'signup' || view === 'signin') html = authView(view);
+    else if (view === 'onboarding') html = obView();
+    else {
+      const body = tab === 'scan' ? scanView() : tab === 'fruits' ? fruitsView() : tab === 'rewards' ? rewardsView() : meView();
+      html = (isGuest() && tab !== 'me' ? guestBanner() : '') + body + navView() + (isGuest() && sheet ? sheetView() : '');
+    }
+    $app.innerHTML = html;
+    if (view === 'app' && sheet) { const b = document.getElementById('sheet-primary'); if (b) b.focus(); }
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('input', (e) => { const b = e.target && e.target.getAttribute && e.target.getAttribute('data-bind'); if (b) form[b] = e.target.value; });
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t && (t.id === 'cam' || t.id === 'gal') && t.files && t.files[0]) analyze(t.files[0], '');
+  });
+  document.addEventListener('submit', async (e) => {
+    const f = e.target; e.preventDefault();
+    const setErr = (m) => { const el = document.getElementById('err'); if (el) el.textContent = m; };
+    if (f.id === 'f-signup' || f.id === 'f-signin') {
+      const em = form.email.trim().toLowerCase(), accs = jget('ll_accounts', {});
+      if (!/^\S+@\S+\.\S+$/.test(em)) return setErr('Enter a valid email address.');
+      if (form.password.length < 6) return setErr('Use a password of at least 6 characters.');
+      const h = await hash(form.password);
+      let moved = false;
+      if (f.id === 'f-signup') {
+        if (!form.name.trim()) return setErr('Enter your name.');
+        if (accs[em]) return setErr('That email already has an account. Sign in instead.');
+        accs[em] = { name: form.name.trim(), h }; sSet('ll_accounts', JSON.stringify(accs));
+        if (isGuest()) {
+          const gd = jget('ll_data_' + 'guest', null);
+          if (gd && gd.profile) { sSet('ll_data_' + em, JSON.stringify(gd)); sDel('ll_data_guest'); moved = true; }
+        }
+      } else {
+        if (!accs[em] || accs[em].h !== h) return setErr('Email or password is not right. Accounts live on the device they were created on.');
+      }
+      sSet('ll_session', em); user = { name: accs[em].name, email: em }; loadData(); form = { name: '', email: '', password: '' };
+      tab = 'scan'; scan = { status: 'idle' }; sheet = false;
+      if (D.profile) view = 'app'; else startOb(false);
+      render(); window.scrollTo(0, 0);
+      if (moved) toast('Your guest progress is now in your account');
+    } else if (f.id === 'f-manual') {
+      const t = (document.getElementById('manual').value || '').trim();
+      if (t) analyze(null, t);
+    } else if (f.id === 'f-custom') {
+      const inp = document.getElementById('custom'), t = (inp.value || '').trim().slice(0, 40);
+      if (t) { addEntry({ name: t, kind: 'fruit', isFruit: true }, 5); toast('+5 · ' + t + ' logged'); }
+    }
+  });
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest && e.target.closest('[data-act]'); if (!el) return;
+    const a = el.getAttribute('data-act');
+    if (a !== 'resetAsk' && confirmReset) confirmReset = false;
+    switch (a) {
+      case 'takePhoto': { const cameraInput = document.getElementById('cam'); if (cameraInput) cameraInput.click(); break; }
+      case 'start': sheet = false; view = 'signup'; render(); window.scrollTo(0, 0); break;
+      case 'signin': sheet = false; view = 'signin'; render(); window.scrollTo(0, 0); break;
+      case 'authBack': view = isGuest() ? (D && D.profile ? 'app' : 'onboarding') : 'welcome'; render(); window.scrollTo(0, 0); break;
+      case 'closeSheet': sheet = false; render(); break;
+      case 'guest': {
+        sSet('ll_session', GUEST_KEY); user = { name: 'Guest', email: 'guest', guest: true }; loadData();
+        tab = 'scan'; scan = { status: 'idle' }; form = { name: '', email: '', password: '' };
+        if (D.profile) { view = 'app'; sheet = true; } else { sheet = false; startOb(false); }
+        render(); window.scrollTo(0, 0); break;
+      }
+      case 'pick': {
+        const k = el.getAttribute('data-k'), v = el.getAttribute('data-v');
+        const g = STEPS[ob.step].groups.find((x) => x.key === k);
+        if (g.type === 'single') ob.ans[k] = v;
+        else {
+          let arr = ob.ans[k];
+          if (v === 'none') arr = arr.includes('none') ? [] : ['none'];
+          else { arr = arr.filter((x) => x !== 'none'); arr = arr.includes(v) ? arr.filter((x) => x !== v) : arr.concat(v); }
+          ob.ans[k] = arr;
+        }
+        render(); break;
+      }
+      case 'goal': ob.ans.fruitGoal = Math.max(1, Math.min(8, ob.ans.fruitGoal + Number(el.getAttribute('data-d')))); render(); break;
+      case 'prev': if (ob.step > 0) ob.step--; else if (ob.edit) view = 'app'; render(); window.scrollTo(0, 0); break;
+      case 'next':
+        if (!obValid()) break;
+        if (ob.step < STEPS.length - 1) { ob.step++; render(); window.scrollTo(0, 0); }
+        else {
+          const A = ob.ans; D.profile = { goal: A.goal, diet: A.diet, allergies: A.allergies.filter((x) => x !== 'none'), conditions: A.conditions.filter((x) => x !== 'none'), age: A.age, activity: A.activity, fruitGoal: A.fruitGoal };
+          save(); view = 'app'; tab = ob.edit ? 'me' : 'scan'; render(); window.scrollTo(0, 0);
+          toast(ob.edit ? 'Answers saved' : isGuest() ? 'All set. Scan your first food.' : 'All set, ' + user.name.split(' ')[0] + '. Scan your first food.');
+        }
+        break;
+      case 'tab': tab = el.getAttribute('data-t'); render(); window.scrollTo(0, 0); break;
+      case 'cancelScan': if (ctl) ctl.abort(); scan = { status: 'idle' }; render(); break;
+      case 'again': scan = { status: 'idle' }; render(); window.scrollTo(0, 0); break;
+      case 'addScan': {
+        const r = scan.result; if (!r || scan.added) break;
+        scan.added = true;
+        addEntry({ name: r.name, kind: 'scan', verdict: r.verdict, score: r.score, isFruit: r.isFruit }, 5);
+        toast('Added to My Fruits (+5)'); break;
+      }
+      case 'fruit': { const n = el.getAttribute('data-v'); addEntry({ name: n, kind: 'fruit', isFruit: true }, 5); toast('+5 · ' + n + ' logged'); break; }
+      case 'del': { const id = el.getAttribute('data-id'); D.log = D.log.filter((x) => x.id !== id); save(); render(); break; }
+      case 'claim': {
+        const wk = dk(weekStart()); if (D.claimedWeeks[wk]) break;
+        D.claimedWeeks[wk] = true; award(50); checkBadges(); save(); render(); toast('Weekly challenge claimed (+50)'); break;
+      }
+      case 'edit': startOb(true); render(); window.scrollTo(0, 0); break;
+      case 'resetAsk':
+        if (!confirmReset) { confirmReset = true; render(); }
+        else { const p = D.profile; D = freshData(); D.profile = p; confirmReset = false; save(); render(); toast('Progress reset'); }
+        break;
+      case 'signout': sDel('ll_session'); user = null; D = null; scan = { status: 'idle' }; sheet = false; view = 'welcome'; render(); window.scrollTo(0, 0); break;
+    }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheet) { sheet = false; render(); } });
+
+  /* ---------- boot ---------- */
+  const sess = sGet('ll_session');
+  if (sess === GUEST_KEY) {
+    user = { name: 'Guest', email: 'guest', guest: true }; loadData();
+    if (D.profile) { view = 'app'; sheet = true; } else startOb(false);
+  } else if (sess) {
+    const acc = jget('ll_accounts', {})[sess];
+    if (acc) { user = { name: acc.name, email: sess }; loadData(); if (D.profile) view = 'app'; else startOb(false); }
+  }
+  render();
+})();
+</script>
+
+</body></html>
